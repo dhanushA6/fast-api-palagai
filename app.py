@@ -62,6 +62,10 @@ net = Net()
 net.load_state_dict(torch.load("tamil_net.pt", map_location=torch.device("cpu")))
 net.eval()
 
+@app.get("/")
+def read_root():
+    return {"message": "Hello World"}
+
 @app.post("/recognize_words")
 async def recognize_tamil_words(request: ImageRequest):
     try:
