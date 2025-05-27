@@ -47,8 +47,31 @@ class Net(nn.Module):
 class ImageRequest(BaseModel):
     images: List[str]  # Base64-encoded strings
 
+# Function to filter results containing special Tamil characters
+def filter_special_tamil_chars(result):
+    """
+    If the result contains 'ஈ' or 'ஃ', keep only that character and remove all other letters
+    """
+    if isinstance(result, dict) and "word" in result:
+        word = result["word"]
+        
+        # Check for ஈ first
+        if "ஈ" in word:
+            filtered_result = result.copy()
+            filtered_result["word"] = "ஈ"
+            return filtered_result
+        
+        # Check for ஃ
+        if "ஃ" in word:
+            filtered_result = result.copy()
+            filtered_result["word"] = "ஃ"
+            return filtered_result
+    
+    return result
+
 # App initialization
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -72,7 +95,10 @@ async def recognize_tamil_words(request: ImageRequest):
         results = []
         for image_data in request.images:
             result = recognize_word(image_data, net)
-            results.append(result)
+            # Apply special Tamil character filter
+            filtered_result = filter_special_tamil_chars(result)
+            results.append(filtered_result)
+        
         return {
             "predictions": results,
             "combined_word": ''.join([r.get("word", "") for r in results])
