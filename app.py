@@ -5,8 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from segment_recognize import recognize_word
-from typing import List
-
+from typing import List         
 # Model definition
 class Net(nn.Module):
     def __init__(self):
@@ -49,25 +48,32 @@ class ImageRequest(BaseModel):
 
 # Function to filter results containing special Tamil characters
 def filter_special_tamil_chars(result):
-    """
-    If the result contains 'ஈ' or 'ஃ', keep only that character and remove all other letters
-    """
     if isinstance(result, dict) and "word" in result:
         word = result["word"]
         
-        # Check for ஈ first
+        # Check for ஈ and remove the next character after each ஈ
         if "ஈ" in word:
             filtered_result = result.copy()
-            filtered_result["word"] = "ஈ"
+            
+            # Process the word from right to left to avoid index shifting issues
+            new_word = list(word)  # Convert to list for easier manipulation
+            
+            # Find all positions of ஈ and process from right to left
+            ee_positions = []
+            for i, char in enumerate(word):
+                if char == "ஈ":
+                    ee_positions.append(i)
+            
+            # Remove characters after each ஈ, starting from the rightmost
+            for ee_index in reversed(ee_positions):
+                # If there's a character after this ஈ, remove it
+                if ee_index + 1 < len(new_word):
+                    new_word.pop(ee_index + 1)
+            
+            filtered_result["word"] = ''.join(new_word)
             return filtered_result
-        
-        # Check for ஃ
-        if "ஃ" in word:
-            filtered_result = result.copy()
-            filtered_result["word"] = "ஃ"
-            return filtered_result
-    
-    return result
+                         
+        return result
 
 # App initialization
 app = FastAPI()
@@ -103,5 +109,6 @@ async def recognize_tamil_words(request: ImageRequest):
             "predictions": results,
             "combined_word": ''.join([r.get("word", "") for r in results])
         }
+    
     except Exception as e:
         return {"error": str(e)}

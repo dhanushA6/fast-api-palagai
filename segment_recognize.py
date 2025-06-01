@@ -18,7 +18,6 @@ def word_to_img(dataURL):
     decoded = b64decode(code)
     buf = BytesIO(decoded)
     img = Image.open(buf)
-    
     # Convert to grayscale with white background
     converted = img.convert("LA")
     la = np.array(converted)
